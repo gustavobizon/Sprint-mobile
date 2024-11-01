@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Picker, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Picker, ScrollView } from 'react-native';
 import { Line, Bar, Radar } from 'react-chartjs-2';
 import 'chart.js/auto';
 
@@ -7,7 +7,7 @@ export default function GraphScreen({ route }) {
   const [sensorData, setSensorData] = useState([]);
   const [chartType, setChartType] = useState('line');
   const [timeRange, setTimeRange] = useState('lastHour');
-  const { token } = route.params;
+  const { token, username } = route.params; // Recebe o username também
 
   useEffect(() => {
     const fetchSensorData = async () => {
@@ -41,6 +41,8 @@ export default function GraphScreen({ route }) {
           return itemDate >= new Date(now - 7 * 24 * 60 * 60 * 1000);
         case 'last30Days':
           return itemDate >= new Date(now - 30 * 24 * 60 * 60 * 1000);
+        case 'allData':
+          return true; 
         default:
           return true;
       }
@@ -61,10 +63,9 @@ export default function GraphScreen({ route }) {
     ],
   });
 
-  // Definindo as cores
-  const tempData = createChartData('Temperatura', 'temperatura', 'rgba(255, 0, 0, 1)'); // Vermelho
-  const umiData = createChartData('Umidade', 'umidade', 'rgba(0, 0, 255, 1)');        // Azul
-  const vibData = createChartData('Vibração', 'vibracao', 'rgba(0, 255, 0, 1)');     // Verde
+  const tempData = createChartData('Temperatura', 'temperatura', 'rgba(255, 0, 0, 1)'); 
+  const umiData = createChartData('Umidade', 'umidade', 'rgba(0, 0, 255, 1)');
+  const vibData = createChartData('Vibração', 'vibracao', 'rgba(0, 255, 0, 1)');
 
   const options = {
     responsive: true,
@@ -96,7 +97,11 @@ export default function GraphScreen({ route }) {
             case 'bar':
               return <Bar data={data} options={options} />;
             case 'radar':
-              return <Radar data={data} options={options} />;
+              // Verifica se o usuário é admin
+              if (username.startsWith('admin_')) {
+                return <Radar data={data} options={options} />;
+              }
+              return <Text style={styles.error}>Acesso negado: você precisa ser um administrador para ver o gráfico de radar.</Text>;
             default:
               return <Line data={data} options={options} />;
           }
@@ -119,6 +124,7 @@ export default function GraphScreen({ route }) {
           <Picker.Item label="Últimas 24 Horas" value="last24Hours" />
           <Picker.Item label="Última Semana" value="lastWeek" />
           <Picker.Item label="Últimos 30 Dias" value="last30Days" />
+          <Picker.Item label="Todos os Dados" value="allData" />
         </Picker>
 
         <Picker
@@ -128,7 +134,7 @@ export default function GraphScreen({ route }) {
         >
           <Picker.Item label="Linha" value="line" />
           <Picker.Item label="Barra" value="bar" />
-          <Picker.Item label="Torta" value="radar" />
+          <Picker.Item label="Radar" value="radar" />
         </Picker>
 
         <Text style={styles.chartLabel}>Temperatura</Text>
@@ -165,8 +171,11 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   chartContainer: {
-    height: 300, // Definindo uma altura fixa de 300 pixels
+    height: 300,
     width: 1300,
     marginBottom: 20,
-}
+  },
+  error: {
+    color: 'red',
+  },
 });
